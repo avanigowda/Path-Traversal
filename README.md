@@ -1,1 +1,2 @@
 # Path-Traversal
+This project focuses on identifying path traversal vulnerabilities in web applications using automated scanning with custom payloads. A Flask-based web app is developed to load various types of encoded payloads and test them against target URLs. The system detects insecure file access by simulating real attack scenarios and logs results in a structured JSON format. The findings are then used to suggest security improvements in input validation and file handling mechanisms.
